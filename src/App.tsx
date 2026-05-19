@@ -1,4 +1,5 @@
 import React, { useState, useEffect, MouseEvent } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Calendar as CalendarIcon,
   Users,
@@ -20,7 +21,9 @@ import {
   CheckCircle,
   ArrowRight,
   Smartphone,
-  BookOpen
+  BookOpen,
+  Mail,
+  AlertCircle
 } from "lucide-react";
 
 // ==========================================
@@ -288,6 +291,167 @@ const BRAND_STORIES = {
 };
 
 // ==========================================
+// SPARKLE PARTICLE LOGIC
+// ==========================================
+interface SparkleParticle {
+  id: string;
+  x: number;
+  y: number;
+  color: string;
+  size: number;
+  dx: number;
+  dy: number;
+  shape: "diamond" | "star8" | "circle" | "ring";
+  duration: number;
+  delay: number;
+  spin: number;
+}
+
+function SparklesOverlay() {
+  const [particles, setParticles] = useState<SparkleParticle[]>([]);
+
+  useEffect(() => {
+    const handleSparkle = (e: Event) => {
+      const customEvent = e as CustomEvent<{ x: number; y: number }>;
+      const { x, y } = customEvent.detail;
+      
+      const luxuryGolds = [
+        "#C68B59", // Warm copper gold
+        "#FBBF24", // Vibrant amber
+        "#FCD34D", // Luxury gold
+        "#FEF08A", // Champagne light yellow
+        "#FFFBEB", // Pearl off-white
+        "#818CF8", // Shimmer violet/silver touch
+        "#34D399", // Soft emerald shimmer
+        "#FFFFFF", // Clear bright star white
+      ];
+
+      const shapes: ("diamond" | "star8" | "circle" | "ring")[] = [
+        "diamond",
+        "star8",
+        "circle",
+        "ring",
+      ];
+      
+      // We will generate 35 magical particles with staggered styles
+      const newParticles: SparkleParticle[] = Array.from({ length: 35 }).map((_, i) => {
+        // Distribute nicely across 360 degrees
+        const angle = (i * (360 / 35) + Math.random() * 15) * (Math.PI / 180);
+        
+        // Two tiers of particles: Fast explosion and Slow drifting trail
+        const isTrail = i % 3 === 0;
+        const velocity = isTrail 
+          ? 2.0 + Math.random() * 3.5  // Slower trail
+          : 4.5 + Math.random() * 8.0; // Fast energetic outward burst
+          
+        return {
+          id: `${Date.now()}-${i}-${Math.random()}`,
+          x,
+          y,
+          color: luxuryGolds[Math.floor(Math.random() * luxuryGolds.length)],
+          size: isTrail
+            ? 4 + Math.random() * 5     // Smaller stardust trail
+            : 8 + Math.random() * 12,   // Larger premium stars
+          dx: Math.cos(angle) * velocity,
+          dy: Math.sin(angle) * velocity,
+          shape: shapes[Math.floor(Math.random() * shapes.length)],
+          duration: isTrail 
+            ? 0.8 + Math.random() * 0.6 // Drifting lasts longer
+            : 0.5 + Math.random() * 0.4, // Instant impact has shorter flash
+          delay: isTrail 
+            ? 0.02 + Math.random() * 0.12 // Beautiful staggered stardust stream
+            : 0,
+          spin: (Math.random() > 0.5 ? 1 : -1) * (180 + Math.random() * 240),
+        };
+      });
+
+      // Keep up to 350 active particles overall to maintain gorgeous visual fidelity without losing frames
+      setParticles((prev) => [...prev, ...newParticles].slice(-350));
+    };
+
+    window.addEventListener("menu-sparkle", handleSparkle as EventListener);
+    return () => window.removeEventListener("menu-sparkle", handleSparkle as EventListener);
+  }, []);
+
+  return (
+    <div className="fixed inset-0 pointer-events-none z-[999] overflow-hidden">
+      <AnimatePresence>
+        {particles.map((p) => (
+          <motion.div
+            key={p.id}
+            initial={{ x: p.x, y: p.y, scale: 0, opacity: 0, rotate: 0 }}
+            animate={{
+              // Elegant física acceleration/deceleration using custom keyframe intervals:
+              // Fast starting motion followed by slow environmental hover drift
+              x: [
+                p.x, 
+                p.x + p.dx * 12, 
+                p.x + p.dx * 20, 
+                p.x + p.dx * 25, 
+                p.x + p.dx * 27
+              ],
+              y: [
+                p.y, 
+                p.y + p.dy * 12, 
+                p.y + p.dy * 20 + 8,  // Gentle weight/gravity addition starts
+                p.y + p.dy * 25 + 24, // Slowing drift downwards
+                p.y + p.dy * 27 + 45  // Soft final settle down
+              ],
+              scale: [0, 1.4, 1.1, 0.6, 0],
+              opacity: [0, 1, 0.95, 0.6, 0],
+              rotate: [0, p.spin * 0.4, p.spin * 0.7, p.spin * 0.9, p.spin],
+            }}
+            exit={{ opacity: 0 }}
+            transition={{
+              duration: p.duration,
+              delay: p.delay,
+              ease: [0.12, 0.8, 0.3, 1], // Custom ultra-premium cubic bezier curve
+            }}
+            onAnimationComplete={() => {
+              setParticles((prev) => prev.filter((item) => item.id !== p.id));
+            }}
+            className="absolute -translate-x-1/2 -translate-y-1/2 flex items-center justify-center filter drop-shadow-[0_2px_8px_rgba(253,224,71,0.55)]"
+            style={{ width: p.size, height: p.size }}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              className="w-full h-full select-none"
+            >
+              {p.shape === "diamond" && (
+                <path
+                  d="M12 2C12 7.5 16.5 12 22 12C16.5 12 12 16.5 12 22C12 16.5 7.5 12 2 12C7.5 12 12 7.5 12 2Z"
+                  fill={p.color}
+                />
+              )}
+              {p.shape === "star8" && (
+                <path
+                  d="M12 0L14.3 8.3L22 6L15.7 12L22 18L14.3 15.7L12 24L9.7 15.7L2 18L8.3 12L2 6L9.7 8.3Z"
+                  fill={p.color}
+                />
+              )}
+              {p.shape === "circle" && (
+                <circle cx="12" cy="12" r="8" fill={p.color} />
+              )}
+              {p.shape === "ring" && (
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="7.5"
+                  stroke={p.color}
+                  strokeWidth="2.5"
+                  fill="none"
+                />
+              )}
+            </svg>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ==========================================
 // COMPACT HELPER FUNCTIONS
 // ==========================================
 const formatKRW = (val: number) => {
@@ -316,10 +480,58 @@ export default function App() {
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [lastResDetails, setLastResDetails] = useState<any | null>(null);
 
+  // Premium Custom Toast notifications
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
   // Scroll to top on view change
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [activeTab, selectedMenuId]);
+
+  // Automatically dismiss toast reports
+  useEffect(() => {
+    if (toastMessage) {
+      const timer = setTimeout(() => setToastMessage(null), 3200);
+      return () => clearTimeout(timer);
+    }
+  }, [toastMessage]);
+
+  // Global magical sparkle listener on all buttons/menu elements
+  useEffect(() => {
+    const handleGlobalClick = (e: any) => {
+      let target = e.target as HTMLElement | null;
+      let shouldSparkle = false;
+
+      while (target && target !== document.body) {
+        if (
+          target.getAttribute("data-sparkle") === "true" ||
+          target.id?.includes("menu") ||
+          target.id?.includes("featured") ||
+          target.id?.includes("filter") ||
+          target.id?.includes("nav") ||
+          target.id?.includes("brand") ||
+          target.id?.includes("wishlist") ||
+          target.id?.includes("direct") ||
+          target.id?.includes("detail") ||
+          target.id?.includes("cta") ||
+          target.id?.includes("btn") ||
+          target.tagName === "BUTTON"
+        ) {
+          shouldSparkle = true;
+          break;
+        }
+        target = target.parentElement;
+      }
+
+      if (shouldSparkle) {
+        const event = new CustomEvent("menu-sparkle", { detail: { x: e.clientX, y: e.clientY } });
+        window.dispatchEvent(event);
+      }
+    };
+
+    window.addEventListener("click", handleGlobalClick);
+    return () => window.removeEventListener("click", handleGlobalClick);
+  }, []);
 
   // Read saved reservations on load
   useEffect(() => {
@@ -354,7 +566,30 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF9F5] text-stone-800 transition-all duration-300">
+    <div className="min-h-screen flex flex-col bg-[#FAF9F5] text-stone-800 transition-all duration-300 relative select-none">
+      {/* MAGICAL EMITTER PORTAL */}
+      <SparklesOverlay />
+
+      {/* FLOATING PREMIUM TOAST */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.8 }}
+            transition={{ type: "spring", stiffness: 350, damping: 22 }}
+            className="fixed bottom-6 right-6 z-[9999] bg-stone-900 border border-emerald-800/40 text-[#FAF9F5] px-6 py-4 rounded-2xl shadow-[0_25px_50px_-12px_rgba(77,96,78,0.3)] flex items-center space-x-3 max-w-sm"
+          >
+            <div className="w-6 h-6 rounded-full bg-emerald-800 flex items-center justify-center text-white shrink-0">
+              <Sparkles className="w-3.5 h-3.5 text-[#C68B59] animate-spin" />
+            </div>
+            <p className="text-xs sm:text-sm font-medium pr-1">
+              {toastMessage}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* HEADER / NAVIGATION BAR */}
       <header className="sticky top-0 z-40 bg-[#FAF9F5]/90 backdrop-blur-md border-b border-stone-200/60 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
@@ -388,13 +623,20 @@ export default function App() {
                 setSelectedMenuId(null);
               }}
               id="nav-home"
-              className={`text-sm font-medium tracking-wide transition-colors py-2 cursor-pointer ${
+              className={`relative text-sm font-medium tracking-wide transition-colors py-2 cursor-pointer ${
                 activeTab === "home" && !selectedMenuId
-                  ? "text-emerald-800 border-b-2 border-emerald-800"
+                  ? "text-emerald-800 font-bold"
                   : "text-stone-500 hover:text-emerald-800"
               }`}
             >
-              홈
+              <span className="relative z-10 px-1">홈</span>
+              {activeTab === "home" && !selectedMenuId && (
+                <motion.div
+                  layoutId="activeTabUnderline"
+                  className="absolute bottom-0 left-0 right-0 h-[3px] bg-emerald-800 rounded-full"
+                  transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                />
+              )}
             </button>
             <button
               onClick={() => {
@@ -402,13 +644,20 @@ export default function App() {
                 setSelectedMenuId(null);
               }}
               id="nav-menu"
-              className={`text-sm font-medium tracking-wide transition-colors py-2 cursor-pointer ${
+              className={`relative text-sm font-medium tracking-wide transition-colors py-2 cursor-pointer ${
                 activeTab === "menu" || selectedMenuId
-                  ? "text-emerald-800 border-b-2 border-emerald-800"
+                  ? "text-emerald-800 font-bold"
                   : "text-stone-500 hover:text-emerald-800"
               }`}
             >
-              메뉴
+              <span className="relative z-10 px-1">메뉴</span>
+              {(activeTab === "menu" || selectedMenuId) && (
+                <motion.div
+                  layoutId="activeTabUnderline"
+                  className="absolute bottom-0 left-0 right-0 h-[3px] bg-emerald-800 rounded-full"
+                  transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                />
+              )}
             </button>
             <button
               onClick={() => {
@@ -416,13 +665,20 @@ export default function App() {
                 setSelectedMenuId(null);
               }}
               id="nav-story"
-              className={`text-sm font-medium tracking-wide transition-colors py-2 cursor-pointer ${
+              className={`relative text-sm font-medium tracking-wide transition-colors py-2 cursor-pointer ${
                 activeTab === "story" && !selectedMenuId
-                  ? "text-emerald-800 border-b-2 border-emerald-800"
+                  ? "text-emerald-800 font-bold"
                   : "text-stone-500 hover:text-emerald-800"
               }`}
             >
-              브랜드 스토리
+              <span className="relative z-10 px-1">브랜드 스토리</span>
+              {activeTab === "story" && !selectedMenuId && (
+                <motion.div
+                  layoutId="activeTabUnderline"
+                  className="absolute bottom-0 left-0 right-0 h-[3px] bg-emerald-800 rounded-full"
+                  transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                />
+              )}
             </button>
             <button
               onClick={() => {
@@ -430,13 +686,20 @@ export default function App() {
                 setSelectedMenuId(null);
               }}
               id="nav-reserve"
-              className={`text-sm font-medium tracking-wide transition-colors py-2 cursor-pointer ${
+              className={`relative text-sm font-medium tracking-wide transition-colors py-2 cursor-pointer ${
                 activeTab === "reserve" && !selectedMenuId
-                  ? "text-emerald-800 border-b-2 border-emerald-800"
+                  ? "text-emerald-800 font-bold"
                   : "text-stone-500 hover:text-emerald-800"
               }`}
             >
-              예약하기
+              <span className="relative z-10 px-1">예약하기</span>
+              {activeTab === "reserve" && !selectedMenuId && (
+                <motion.div
+                  layoutId="activeTabUnderline"
+                  className="absolute bottom-0 left-0 right-0 h-[3px] bg-emerald-800 rounded-full"
+                  transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                />
+              )}
             </button>
           </nav>
 
@@ -453,7 +716,7 @@ export default function App() {
                 title={`${wishlist.length}개의 위시리스트 품목`}
               >
                 <Heart className="w-5 h-5 fill-rose-500 text-rose-500" />
-                <span className="absolute -top-1 -right-1 bg-rose-500 text-white rounded-full text-[9px] w-4 h-4 flex items-center justify-center font-bold">
+                <span className="absolute -top-1 -right-1 bg-rose-500 text-white rounded-full text-[9px] w-4 h-4 flex items-center justify-center font-bold animate-bounce">
                   {wishlist.length}
                 </span>
               </button>
@@ -487,7 +750,7 @@ export default function App() {
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               id="mobile-menu-toggle-btn"
-              className="p-2 text-stone-700 hover:text-emerald-800 transition-colors focus:outline-hidden touch-target"
+              className="p-2 text-stone-700 hover:text-emerald-800 transition-colors focus:outline-hidden touch-target animate-bounce"
               aria-label="메뉴 열기"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
@@ -496,130 +759,157 @@ export default function App() {
         </div>
 
         {/* Mobile Navigation Drawer */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-stone-200 bg-[#FAF9F5] transition-all duration-300">
-            <div className="px-4 pt-3 pb-6 space-y-3 flex flex-col">
-              <button
-                onClick={() => {
-                  setActiveTab("home");
-                  setSelectedMenuId(null);
-                  setMobileMenuOpen(false);
-                }}
-                id="mobile-nav-home"
-                className="w-full text-left px-3 py-3 rounded-lg text-base font-medium text-stone-700 hover:bg-stone-100 hover:text-emerald-800 transition-all touch-target"
-              >
-                홈
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab("menu");
-                  setSelectedMenuId(null);
-                  setMobileMenuOpen(false);
-                }}
-                id="mobile-nav-menu"
-                className="w-full text-left px-3 py-3 rounded-lg text-base font-medium text-stone-700 hover:bg-stone-100 hover:text-emerald-800 transition-all touch-target"
-              >
-                메뉴 탐색
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab("story");
-                  setSelectedMenuId(null);
-                  setMobileMenuOpen(false);
-                }}
-                id="mobile-nav-story"
-                className="w-full text-left px-3 py-3 rounded-lg text-base font-medium text-stone-700 hover:bg-stone-100 hover:text-emerald-800 transition-all touch-target"
-              >
-                브랜드 스토리
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab("reserve");
-                  setSelectedMenuId(null);
-                  setMobileMenuOpen(false);
-                }}
-                id="mobile-nav-reserve"
-                className="w-full text-left px-3 py-3 rounded-lg text-base font-medium text-stone-700 hover:bg-stone-100 hover:text-emerald-800 transition-all touch-target"
-              >
-                실시간 예약하기
-              </button>
-              <div className="pt-2">
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="md:hidden border-t border-stone-200 bg-[#FAF9F5] overflow-hidden"
+            >
+              <div className="px-4 pt-3 pb-6 space-y-3 flex flex-col">
+                <button
+                  onClick={() => {
+                    setActiveTab("home");
+                    setSelectedMenuId(null);
+                    setMobileMenuOpen(false);
+                  }}
+                  id="mobile-nav-home"
+                  className="w-full text-left px-3 py-3 rounded-lg text-base font-medium text-stone-700 hover:bg-stone-100 hover:text-emerald-800 transition-all touch-target"
+                >
+                  홈
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveTab("menu");
+                    setSelectedMenuId(null);
+                    setMobileMenuOpen(false);
+                  }}
+                  id="mobile-nav-menu"
+                  className="w-full text-left px-3 py-3 rounded-lg text-base font-medium text-stone-700 hover:bg-stone-100 hover:text-emerald-800 transition-all touch-target"
+                >
+                  메뉴 탐색
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveTab("story");
+                    setSelectedMenuId(null);
+                    setMobileMenuOpen(false);
+                  }}
+                  id="mobile-nav-story"
+                  className="w-full text-left px-3 py-3 rounded-lg text-base font-medium text-stone-700 hover:bg-stone-100 hover:text-emerald-800 transition-all touch-target"
+                >
+                  브랜드 스토리
+                </button>
                 <button
                   onClick={() => {
                     setActiveTab("reserve");
                     setSelectedMenuId(null);
                     setMobileMenuOpen(false);
                   }}
-                  id="mobile-nav-cta-btn"
-                  className="w-full py-3 rounded-full text-center text-sm font-semibold bg-emerald-800 text-[#FAF9F5] shadow-xs cursor-pointer"
+                  id="mobile-nav-reserve"
+                  className="w-full text-left px-3 py-3 rounded-lg text-base font-medium text-stone-700 hover:bg-stone-100 hover:text-emerald-800 transition-all touch-target"
                 >
-                  일반 및 단체 단독 예약
+                  실시간 예약하기
                 </button>
+                <div className="pt-2">
+                  <button
+                    onClick={() => {
+                      setActiveTab("reserve");
+                      setSelectedMenuId(null);
+                      setMobileMenuOpen(false);
+                    }}
+                    id="mobile-nav-cta-btn"
+                    className="w-full py-3 rounded-full text-center text-sm font-semibold bg-emerald-800 text-[#FAF9F5] shadow-xs cursor-pointer"
+                  >
+                    일반 및 단체 단독 예약
+                  </button>
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
       {/* CORE CONTENT NAVIGATION */}
-      <main className="flex-grow">
-        {selectedMenuId ? (
-          <MenuDetailView
-            menuId={selectedMenuId}
-            onBack={() => setSelectedMenuId(null)}
-            wishlist={wishlist}
-            onWishlistToggle={handleWishlistToggle}
-            onReserve={handleDirectReservation}
-          />
-        ) : (
-          <div className="transition-all duration-300">
-            {activeTab === "home" && (
-              <HomeView
-                onNavigate={(tab) => {
-                  setActiveTab(tab);
-                  setSelectedMenuId(null);
-                }}
-                onSelectMenu={(id) => setSelectedMenuId(id)}
+      <main className="flex-grow overflow-x-hidden relative">
+        <AnimatePresence mode="wait">
+          {selectedMenuId ? (
+            <motion.div
+              key={`detail-${selectedMenuId}`}
+              initial={{ opacity: 0, x: -60, filter: "blur(8px)" }}
+              animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, x: 60, filter: "blur(8px)" }}
+              transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <MenuDetailView
+                menuId={selectedMenuId}
+                onBack={() => setSelectedMenuId(null)}
                 wishlist={wishlist}
                 onWishlistToggle={handleWishlistToggle}
+                onReserve={handleDirectReservation}
+                onShowToast={(msg) => setToastMessage(msg)}
               />
-            )}
-            {activeTab === "menu" && (
-              <MenuView
-                onSelectMenu={(id) => setSelectedMenuId(id)}
-                wishlist={wishlist}
-                onWishlistToggle={handleWishlistToggle}
-                onReserveDirect={handleDirectReservation}
-              />
-            )}
-            {activeTab === "story" && (
-              <StoryView
-                onNavigate={(tab) => {
-                  setActiveTab(tab);
-                  setSelectedMenuId(null);
-                }}
-              />
-            )}
-            {activeTab === "reserve" && (
-              <ReservationView
-                resDate={resDate}
-                setResDate={setResDate}
-                resGuests={resGuests}
-                setResGuests={setResGuests}
-                resTime={resTime}
-                setResTime={setResTime}
-                resNotes={resNotes}
-                setResNotes={setResNotes}
-                currentYear={currentYear}
-                currentMonth={currentMonth}
-                onSuccess={(details) => {
-                  setLastResDetails(details);
-                  setSuccessModalOpen(true);
-                }}
-              />
-            )}
-          </div>
-        )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 35, filter: "blur(10px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, y: -35, filter: "blur(10px)" }}
+              transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {activeTab === "home" && (
+                <HomeView
+                  onNavigate={(tab) => {
+                    setActiveTab(tab);
+                    setSelectedMenuId(null);
+                  }}
+                  onSelectMenu={(id) => setSelectedMenuId(id)}
+                  wishlist={wishlist}
+                  onWishlistToggle={handleWishlistToggle}
+                  onShowToast={(msg) => setToastMessage(msg)}
+                />
+              )}
+              {activeTab === "menu" && (
+                <MenuView
+                  onSelectMenu={(id) => setSelectedMenuId(id)}
+                  wishlist={wishlist}
+                  onWishlistToggle={handleWishlistToggle}
+                  onReserveDirect={handleDirectReservation}
+                  onShowToast={(msg) => setToastMessage(msg)}
+                />
+              )}
+              {activeTab === "story" && (
+                <StoryView
+                  onNavigate={(tab) => {
+                    setActiveTab(tab);
+                    setSelectedMenuId(null);
+                  }}
+                />
+              )}
+              {activeTab === "reserve" && (
+                <ReservationView
+                  resDate={resDate}
+                  setResDate={setResDate}
+                  resGuests={resGuests}
+                  setResGuests={setResGuests}
+                  resTime={resTime}
+                  setResTime={setResTime}
+                  resNotes={resNotes}
+                  setResNotes={setResNotes}
+                  currentYear={currentYear}
+                  currentMonth={currentMonth}
+                  onSuccess={(details) => {
+                    setLastResDetails(details);
+                    setSuccessModalOpen(true);
+                  }}
+                />
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* FOOTER */}
@@ -683,7 +973,7 @@ export default function App() {
               <p>화요일 - 일요일 (매주 월요일 정기 휴무)</p>
               <p>영업시간 : 오전 11:00 ~ 오후 21:00</p>
               <p className="text-amber-500 font-semibold text-[12px]">
-                BreakTime : 15:00 ~ 17:00 (음료만 주문 가능)
+                BreakTime : 15:00 - 17:00 (식사 주방 완전 정비 휴식시간)
               </p>
               <p>마지막 주문 : 점심 14:30 | 저녁 20:30</p>
             </div>
@@ -727,20 +1017,44 @@ interface HomeViewProps {
   onSelectMenu: (id: string) => void;
   wishlist: string[];
   onWishlistToggle: (id: string, e?: MouseEvent<HTMLButtonElement>) => void;
+  onShowToast: (msg: string) => void;
 }
 
-function HomeView({ onNavigate, onSelectMenu, wishlist, onWishlistToggle }: HomeViewProps) {
+function HomeView({ onNavigate, onSelectMenu, wishlist, onWishlistToggle, onShowToast }: HomeViewProps) {
   const featured = MENU_DATA.slice(0, 3);
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.12,
+      },
+    },
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 40, filter: "blur(6px)" },
+    show: {
+      opacity: 1,
+      y: 0,
+      filter: "blur(0px)",
+      transition: { type: "spring", stiffness: 110, damping: 14 },
+    },
+  };
+
   return (
-    <div className="space-y-16 pb-12 animate-fade-in">
+    <div className="space-y-16 pb-12">
       {/* HERO SECTION */}
-      <section className="relative min-h-[550px] lg:h-[650px] flex items-center bg-stone-900 overflow-hidden" id="home-hero-section">
+      <section className="relative min-h-[550px] lg:h-[650px] flex items-center bg-stone-900 overflow-hidden rounded-b-[2rem] sm:rounded-b-[4rem]" id="home-hero-section">
         <div className="absolute inset-0 z-0">
-          <img
+          <motion.img
+            initial={{ scale: 1.15, opacity: 0.2 }}
+            animate={{ scale: 1, opacity: 0.45 }}
+            transition={{ duration: 1.5, ease: "easeOut" }}
             src="https://images.unsplash.com/photo-1541532713592-79a0317b6b77?auto=format&fit=crop&w=1920&q=80"
             alt="Beautiful table presentation of exquisite gourmet brunch"
-            className="w-full h-full object-cover object-center opacity-45 scale-102 transition-all duration-1000"
+            className="w-full h-full object-cover object-center"
             referrerPolicy="no-referrer"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-[#1C201C]/95 via-[#1C201C]/80 to-transparent" />
@@ -748,33 +1062,56 @@ function HomeView({ onNavigate, onSelectMenu, wishlist, onWishlistToggle }: Home
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-0 w-full">
           <div className="max-w-2xl text-left space-y-6">
-            <span className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-emerald-800/80 text-white text-xs uppercase tracking-widest backdrop-blur-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5 text-[#C68B59]" />
+            <motion.span
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+              className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-emerald-800/80 text-white text-xs uppercase tracking-widest backdrop-blur-xs font-semibold"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#C68B59] animate-spin" />
               <span>햇살 아래 즐기는 완벽한 치유</span>
-            </span>
-            <h1 className="text-4xl sm:text-5xl lg:text-6.5xl font-extrabold tracking-tight text-white leading-tight font-serif-elegant">
+            </motion.span>
+            
+            <motion.h1
+              initial={{ opacity: 0, y: 30, filter: "blur(5px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              transition={{ delay: 0.3, duration: 0.6 }}
+              className="text-4xl sm:text-5xl lg:text-6.5xl font-extrabold tracking-tight text-white leading-tight font-serif-elegant"
+            >
               햇살 아래 즐기는<br />
               <span className="text-[#C68B59]">신선한 브런치 한 접시</span>
-            </h1>
-            <p className="text-stone-300 text-sm sm:text-base leading-relaxed max-w-lg font-light">
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.6 }}
+              className="text-stone-300 text-sm sm:text-base leading-relaxed max-w-lg font-light"
+            >
               빛나는 아침 햇살을 닮은 건강하고 따뜻한 요리, 샤이닝 테이블에서 소중한 사람들과의 기분 좋은 시식을 실시간 예약해보세요.
-            </p>
-            <div className="pt-2 flex flex-col sm:flex-row gap-4">
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.6 }}
+              className="pt-2 flex flex-col sm:flex-row gap-4"
+            >
               <button
                 onClick={() => onNavigate("reserve")}
                 id="hero-reserve-btn"
-                className="px-8 py-4 bg-[#C68B59] hover:bg-amber-600 text-white text-[11px] font-bold tracking-widest uppercase rounded-full shadow-lg transition-all cursor-pointer text-center"
+                className="px-8 py-4 bg-[#C68B59] hover:bg-amber-600 text-white text-[11px] font-bold tracking-widest uppercase rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 cursor-pointer text-center"
               >
                 지금 자리 예약하기
               </button>
               <button
                 onClick={() => onNavigate("menu")}
                 id="hero-menu-btn"
-                className="px-8 py-4 bg-white/10 hover:bg-white/20 border border-white/20 text-[#FAF9F5] text-[11px] font-bold tracking-widest uppercase rounded-full backdrop-blur-xs transition-all cursor-pointer text-center"
+                className="px-8 py-4 bg-white/10 hover:bg-white/20 border border-white/20 text-[#FAF9F5] text-[11px] font-bold tracking-widest uppercase rounded-full backdrop-blur-xs transition-all hover:scale-105 active:scale-95 cursor-pointer text-center"
               >
                 전체 메뉴판 둘러보기
               </button>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -791,13 +1128,21 @@ function HomeView({ onNavigate, onSelectMenu, wishlist, onWishlistToggle }: Home
           <div className="h-0.5 w-16 bg-[#C68B59] mx-auto mt-4" />
         </div>
 
-        {/* Featured Items Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* Featured Items Cards with Staggered motion */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-100px" }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-8"
+        >
           {featured.map((item) => (
-            <div
+            <motion.div
               key={item.id}
+              variants={cardVariants}
+              whileHover={{ y: -12, scale: 1.02 }}
               onClick={() => onSelectMenu(item.id)}
-              className="bg-white rounded-2xl overflow-hidden border border-stone-200/50 shadow-xs hover:shadow-lg transition-all duration-300 group cursor-pointer flex flex-col justify-between hover:-translate-y-1"
+              className="bg-white rounded-2xl overflow-hidden border border-stone-200/50 shadow-xs hover:shadow-2xl transition-all duration-300 group cursor-pointer flex flex-col justify-between"
               id={`featured-card-${item.id}`}
             >
               <div>
@@ -805,13 +1150,15 @@ function HomeView({ onNavigate, onSelectMenu, wishlist, onWishlistToggle }: Home
                   <img
                     src={item.image}
                     alt={item.name}
-                    className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-500"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                     referrerPolicy="no-referrer"
                   />
-                  <div className="absolute inset-0 bg-linear-to-t from-black/20 via-transparent to-transparent" />
+                  <div className="absolute inset-0 bg-linear-to-t from-black/25 via-transparent to-transparent" />
                   <button
-                    onClick={(e) => onWishlistToggle(item.id, e)}
-                    className="absolute top-4 right-4 z-10 p-2.5 rounded-full bg-[#FAF9F5]/95 text-stone-400 hover:text-rose-500 shadow-sm transition-colors cursor-pointer"
+                    onClick={(e) => {
+                      onWishlistToggle(item.id, e);
+                    }}
+                    className="absolute top-4 right-4 z-10 p-2.5 rounded-full bg-[#FAF9F5]/95 text-stone-400 hover:text-rose-500 shadow-sm transition-colors cursor-pointer hover:scale-110 active:scale-95"
                     id={`wishlist-btn-home-${item.id}`}
                   >
                     <Heart
@@ -843,30 +1190,37 @@ function HomeView({ onNavigate, onSelectMenu, wishlist, onWishlistToggle }: Home
                   {formatKRW(item.price)}
                 </span>
                 <span className="text-xs font-semibold text-emerald-800 flex items-center gap-1 group-hover:underline">
-                  자세히 보기 <ArrowRight className="w-3.5 h-3.5 text-emerald-800" />
+                  자세히 보기 <ArrowRight className="w-3.5 h-3.5 text-emerald-800 group-hover:translate-x-1 transition-transform" />
                 </span>
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         <div className="pt-8 text-center">
           <button
             onClick={() => onNavigate("menu")}
             id="more-menu-btn"
-            className="px-6 py-3 border border-emerald-800 text-emerald-800 rounded-full text-xs font-semibold tracking-widest hover:bg-emerald-800 hover:text-white transition-all cursor-pointer"
+            className="px-6 py-3 border border-emerald-800 text-emerald-800 rounded-full text-xs font-semibold tracking-widest hover:bg-emerald-800 hover:text-white hover:scale-105 active:scale-95 transition-all cursor-pointer"
           >
             모든 브런치 메뉴 리스트 구경하기
           </button>
         </div>
       </section>
 
-      {/* TODAY SPECIAL DISCOUNT OR SERVICE BANNER */}
-      <section className="bg-[#C68B59] py-10 px-4 md:px-8 text-[#FAF9F5] shadow-xs" id="special-banner-section">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+      {/* TODAY SPECIAL DISCOUNT OR SERVICE BANNER with hover motion */}
+      <motion.section
+        initial={{ opacity: 0, scale: 0.95 }}
+        whileInView={{ opacity: 1, scale: 1 }}
+        viewport={{ once: true }}
+        transition={{ type: "spring", stiffness: 80 }}
+        className="bg-[#C68B59] py-10 px-4 md:px-8 text-[#FAF9F5] shadow-xs rounded-[2rem] max-w-7xl mx-auto"
+        id="special-banner-section"
+      >
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center space-x-4 text-center md:text-left">
             <div className="p-3 bg-white/20 rounded-full shrink-0">
-              <Sparkles className="w-6 h-6 text-white" />
+              <Sparkles className="w-6 h-6 text-white animate-spin" />
             </div>
             <div>
               <h3 className="text-lg md:text-xl font-bold font-serif-elegant tracking-wide">
@@ -878,18 +1232,26 @@ function HomeView({ onNavigate, onSelectMenu, wishlist, onWishlistToggle }: Home
             </div>
           </div>
           <button
-            onClick={() => onNavigate("reserve")}
+            onClick={() => {
+              onNavigate("reserve");
+              onShowToast("오늘만 드리는 무료 타르트 혜택이 적용 예약 모드로 설정되었습니다!");
+            }}
             id="special-banner-reserve-btn"
-            className="px-6 py-3 bg-white text-[#C68B59] rounded-full text-xs font-bold tracking-wider hover:bg-stone-50 transition-all cursor-pointer whitespace-nowrap"
+            className="px-6 py-3 bg-white text-[#C68B59] rounded-full text-xs font-bold tracking-wider hover:bg-stone-50 hover:scale-105 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
           >
             무료 타르트 혜택 예약해두기
           </button>
         </div>
-      </section>
+      </motion.section>
 
       {/* PROOFS & REVIEWS OVERVIEW */}
       <section className="max-w-4xl mx-auto px-4 text-center space-y-6">
-        <div className="bg-white border border-stone-200/60 p-8 rounded-2xl shadow-xs space-y-5">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="bg-white border border-stone-200/60 p-8 rounded-2xl shadow-xs space-y-5"
+        >
           <div className="flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-stone-200 items-center justify-center">
             <div className="px-8 pb-6 sm:pb-0 text-center">
               <div className="flex items-center justify-center space-x-1 text-[#C68B59] mb-1">
@@ -913,7 +1275,7 @@ function HomeView({ onNavigate, onSelectMenu, wishlist, onWishlistToggle }: Home
           <p className="text-stone-500 text-xs max-w-lg mx-auto leading-relaxed italic font-light">
             &ldquo;창가로 가득 쏟아지는 아침 한 잔 식사에 눈과 입이 동시에 에너지를 얻었습니다. 예약자가 완전 철저해서 웨이팅 스트레스가 없어서 부모님 대접해 드리기 최고입니다.&rdquo; - 실제 예약 손님 최연우 님
           </p>
-        </div>
+        </motion.div>
       </section>
 
       {/* FINAL CALL TO ACTION */}
@@ -952,6 +1314,8 @@ function HomeView({ onNavigate, onSelectMenu, wishlist, onWishlistToggle }: Home
   );
 }
 
+
+
 // ==========================================
 // VIEW 2: FILTERABLE MENU LIST VIEW
 // ==========================================
@@ -960,9 +1324,10 @@ interface MenuViewProps {
   wishlist: string[];
   onWishlistToggle: (id: string, e?: MouseEvent<HTMLButtonElement>) => void;
   onReserveDirect: (menuId: string) => void;
+  onShowToast: (msg: string) => void;
 }
 
-function MenuView({ onSelectMenu, wishlist, onWishlistToggle, onReserveDirect }: MenuViewProps) {
+function MenuView({ onSelectMenu, wishlist, onWishlistToggle, onReserveDirect, onShowToast }: MenuViewProps) {
   const [filter, setFilter] = useState<"all" | "brunch" | "pasta" | "steak" | "drink">("all");
 
   const filteredItems = MENU_DATA.filter((item) => {
@@ -970,8 +1335,28 @@ function MenuView({ onSelectMenu, wishlist, onWishlistToggle, onReserveDirect }:
     return item.category === filter;
   });
 
+  const gridVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.08,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30, filter: "blur(5px)" },
+    show: {
+      opacity: 1,
+      y: 0,
+      filter: "blur(0px)",
+      transition: { type: "spring", stiffness: 100, damping: 15 },
+    },
+  };
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12 animate-fade-in">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
       {/* Title */}
       <div className="text-center max-w-xl mx-auto space-y-2">
         <span className="text-xs font-bold tracking-widest uppercase text-[#C68B59]">
@@ -986,7 +1371,7 @@ function MenuView({ onSelectMenu, wishlist, onWishlistToggle, onReserveDirect }:
         <div className="h-0.5 w-12 bg-[#C68B59] mx-auto mt-2" />
       </div>
 
-      {/* FILTER BUTTONS */}
+      {/* FILTER BUTTONS with active pill animation */}
       <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 border-b border-stone-200/50 pb-6">
         {[
           { key: "all", value: "전체 미식" },
@@ -997,111 +1382,141 @@ function MenuView({ onSelectMenu, wishlist, onWishlistToggle, onReserveDirect }:
         ].map((btn) => (
           <button
             key={btn.key}
-            onClick={() => setFilter(btn.key as any)}
-            className={`px-5 py-2.5 rounded-full text-xs font-medium tracking-wider transition-all cursor-pointer ${
-              filter === btn.key
-                ? "bg-emerald-800 text-[#FAF9F5] shadow-xs font-semibold"
-                : "bg-white text-stone-500 border border-stone-200 hover:border-emerald-800 hover:text-emerald-800"
-            }`}
+            onClick={() => {
+              setFilter(btn.key as any);
+              onShowToast(`미식 필터가 '${btn.value}' 카테고리로 설정되었습니다.`);
+            }}
+            className="relative px-5 py-2.5 rounded-full text-xs font-medium tracking-wider cursor-pointer select-none transition-colors duration-200"
+            style={{ WebkitTapHighlightColor: "transparent" }}
             id={`filter-btn-${btn.key}`}
           >
-            {btn.value}
+            {filter === btn.key && (
+              <motion.span
+                layoutId="activeFilterPill"
+                className="absolute inset-0 bg-emerald-800 rounded-full shadow-xs"
+                transition={{ type: "spring", stiffness: 350, damping: 28 }}
+              />
+            )}
+            <span className={`relative z-10 transition-colors duration-200 ${
+              filter === btn.key ? "text-[#FAF9F5] font-semibold" : "text-stone-500 hover:text-emerald-800"
+            }`}>
+              {btn.value}
+            </span>
           </button>
         ))}
       </div>
 
-      {/* MENU GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="menu-catalog-grid">
-        {filteredItems.map((item) => (
-          <div
-            key={item.id}
-            onClick={() => onSelectMenu(item.id)}
-            className="bg-white rounded-2xl overflow-hidden border border-stone-200/50 shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between group cursor-pointer hover:-translate-y-1"
-            id={`menu-card-${item.id}`}
-          >
-            <div>
-              <div className="relative h-56 overflow-hidden">
-                <img
-                  src={item.image}
-                  alt={item.name}
-                  className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-500"
-                  referrerPolicy="no-referrer"
-                />
-                <button
-                  onClick={(e) => onWishlistToggle(item.id, e)}
-                  className="absolute top-4 right-4 z-10 p-2.5 rounded-full bg-[#FAF9F5]/95 text-stone-400 hover:text-rose-500 shadow-sm transition-colors cursor-pointer"
-                  id={`wishlist-btn-catalog-${item.id}`}
-                >
-                  <Heart
-                    className={`w-5 h-5 transition-all ${
-                      wishlist.includes(item.id) ? "fill-rose-500 text-rose-500 scale-110" : "text-stone-400"
-                    }`}
+      {/* MENU GRID with Layout Animations */}
+      <motion.div
+        layout
+        variants={gridVariants}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+        id="menu-catalog-grid"
+      >
+        <AnimatePresence mode="popLayout">
+          {filteredItems.map((item) => (
+            <motion.div
+              layout
+              key={item.id}
+              variants={itemVariants}
+              initial="hidden"
+              animate="show"
+              exit={{ opacity: 0, scale: 0.9, filter: "blur(5px)" }}
+              whileHover={{ y: -12, scale: 1.02 }}
+              onClick={() => onSelectMenu(item.id)}
+              className="bg-white rounded-2xl overflow-hidden border border-stone-200/50 shadow-xs hover:shadow-2xl transition-all duration-300 flex flex-col justify-between group cursor-pointer"
+              id={`menu-card-${item.id}`}
+            >
+              <div>
+                <div className="relative h-56 overflow-hidden">
+                  <motion.img
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ duration: 0.4 }}
+                    src={item.image}
+                    alt={item.name}
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
                   />
-                </button>
-                {item.isBest && (
-                  <span className="absolute bottom-4 left-4 bg-[#C68B59] text-white text-[9px] font-bold tracking-widest uppercase py-1 px-2.5 rounded-xs">
-                    Best
-                  </span>
-                )}
-                {item.isVegan && (
-                  <span className="absolute bottom-4 right-4 bg-emerald-700/90 text-white text-[9px] font-bold tracking-widest uppercase py-1 px-2.5 rounded-xs">
-                    Vegan Options
-                  </span>
-                )}
-              </div>
-
-              <div className="p-6 space-y-3.5">
-                <div className="flex items-center justify-between">
-                  <span className="block text-[10px] font-extrabold text-[#C68B59] tracking-widest uppercase">
-                    {item.category.toUpperCase()} DICTIONARY
-                  </span>
-                  <span className="text-[10px] text-stone-400 flex items-center gap-1 font-mono">
-                    <Clock className="w-3.5 h-3.5 text-stone-400" /> {item.cookingTime} 소요
-                  </span>
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-emerald-950 group-hover:text-[#C68B59] transition-colors font-serif-elegant">
-                    {item.name}
-                  </h3>
-                  <p className="text-stone-400 block text-[10px] sm:text-[11px] tracking-wide font-light font-sans italic -mt-0.5">
-                    {item.englishName}
-                  </p>
-                </div>
-                <p className="text-xs sm:text-sm text-stone-500 leading-relaxed line-clamp-2 font-light">
-                  {item.tagline}
-                </p>
-
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {item.hashtags.map((tag, i) => (
-                    <span
-                      key={i}
-                      className="text-[10px] text-stone-400 font-mono px-2 py-0.5 rounded-md bg-stone-100"
-                    >
-                      #{tag}
+                  <button
+                    onClick={(e) => {
+                      onWishlistToggle(item.id, e);
+                    }}
+                    className="absolute top-4 right-4 z-10 p-2.5 rounded-full bg-[#FAF9F5]/95 text-stone-400 hover:text-rose-500 shadow-sm transition-colors cursor-pointer hover:scale-110 active:scale-95"
+                    id={`wishlist-btn-catalog-${item.id}`}
+                  >
+                    <Heart
+                      className={`w-5 h-5 transition-all ${
+                        wishlist.includes(item.id) ? "fill-rose-500 text-rose-500 scale-110" : "text-stone-400"
+                      }`}
+                    />
+                  </button>
+                  {item.isBest && (
+                    <span className="absolute bottom-4 left-4 bg-[#C68B59] text-white text-[9px] font-bold tracking-widest uppercase py-1 px-2.5 rounded-xs">
+                      Best choice
                     </span>
-                  ))}
+                  )}
+                  {item.isVegan && (
+                    <span className="absolute bottom-4 right-4 bg-emerald-700/90 text-white text-[9px] font-bold tracking-widest uppercase py-1 px-2.5 rounded-xs">
+                      Vegan options
+                    </span>
+                  )}
+                </div>
+
+                <div className="p-6 space-y-3.5">
+                  <div className="flex items-center justify-between">
+                    <span className="block text-[10px] font-extrabold text-[#C68B59] tracking-widest uppercase">
+                      {item.category.toUpperCase()} DICTIONARY
+                    </span>
+                    <span className="text-[10px] text-stone-400 flex items-center gap-1 font-mono">
+                      <Clock className="w-3.5 h-3.5 text-stone-400" /> {item.cookingTime} 소요
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-emerald-950 group-hover:text-[#C68B59] transition-colors font-serif-elegant">
+                      {item.name}
+                    </h3>
+                    <p className="text-stone-400 block text-[10px] sm:text-[11px] tracking-wide font-light font-sans italic -mt-0.5">
+                      {item.englishName}
+                    </p>
+                  </div>
+                  <p className="text-xs sm:text-sm text-stone-500 leading-relaxed line-clamp-2 font-light">
+                    {item.tagline}
+                  </p>
+
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {item.hashtags.map((tag, i) => (
+                      <span
+                        key={i}
+                        className="text-[10px] text-stone-400 font-mono px-2 py-0.5 rounded-md bg-stone-100/90"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="px-6 py-4 bg-stone-50 border-t border-stone-100 flex items-center justify-between">
-              <span className="text-base font-semibold text-emerald-950 font-mono">
-                {formatKRW(item.price)}
-              </span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onReserveDirect(item.id);
-                }}
-                className="px-4 py-1.5 rounded-full bg-emerald-800 hover:bg-[#5E7260] text-white text-[10px] font-semibold tracking-wider transition-all cursor-pointer"
-                id={`direct-reserve-btn-${item.id}`}
-              >
-                예약 신청포맷
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+              <div className="px-6 py-4 bg-stone-50/50 border-t border-stone-100 flex items-center justify-between">
+                <span className="text-base font-semibold text-emerald-950 font-mono">
+                  {formatKRW(item.price)}
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onReserveDirect(item.id);
+                  }}
+                  className="px-4 py-1.5 rounded-full bg-emerald-800 hover:bg-[#5E7260] text-white text-[10px] font-semibold tracking-wider transition-all cursor-pointer hover:scale-105 active:scale-95 shadow-xs"
+                  id={`direct-reserve-btn-${item.id}`}
+                >
+                  기본 예약 신청
+                </button>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </motion.div>
     </div>
   );
 }
@@ -1115,9 +1530,10 @@ interface MenuDetailViewProps {
   wishlist: string[];
   onWishlistToggle: (id: string, e?: MouseEvent<HTMLButtonElement>) => void;
   onReserve: (menuId: string) => void;
+  onShowToast: (msg: string) => void;
 }
 
-function MenuDetailView({ menuId, onBack, wishlist, onWishlistToggle, onReserve }: MenuDetailViewProps) {
+function MenuDetailView({ menuId, onBack, wishlist, onWishlistToggle, onReserve, onShowToast }: MenuDetailViewProps) {
   const item = MENU_DATA.find((m) => m.id === menuId);
 
   if (!item) {
@@ -1369,11 +1785,36 @@ interface StoryViewProps {
 }
 
 function StoryView({ onNavigate }: StoryViewProps) {
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.12,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30, filter: "blur(3px)" },
+    show: { opacity: 1, y: 0, filter: "blur(0px)", transition: { type: "spring", stiffness: 90, damping: 14 } },
+  };
+
   return (
-    <div className="space-y-16 pb-12 animate-fade-in" id="story-view-container">
-      {/* BRAND HERO */}
-      <section className="relative h-[400px] flex items-center bg-stone-900 overflow-hidden" id="story-hero-section">
-        <div className="absolute inset-0 z-0">
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="space-y-16 pb-12"
+      id="story-view-container"
+    >
+      {/* BRAND HERO with dynamic scale & brightness adjustment */}
+      <motion.section
+        variants={itemVariants}
+        className="relative h-[400px] flex items-center bg-stone-900 overflow-hidden"
+        id="story-hero-section"
+      >
+        <div className="absolute inset-0 z-0 scale-105">
           <img
             src="https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=1600&q=80"
             alt="Warm baking light in early mornings"
@@ -1395,14 +1836,16 @@ function StoryView({ onNavigate }: StoryViewProps) {
           </p>
           <div className="h-0.5 w-16 bg-[#C68B59] mx-auto mt-2" />
         </div>
-      </section>
+      </motion.section>
 
       {/* CORE PHILOSOPHIES CARD GRID */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-8">
         {BRAND_STORIES.philosophies.map((phil, i) => (
-          <div
+          <motion.div
             key={i}
-            className="bg-white p-8 rounded-2xl border border-stone-200/55 space-y-4 shadow-xs"
+            variants={itemVariants}
+            whileHover={{ y: -10, scale: 1.025 }}
+            className="bg-white p-8 rounded-2xl border border-stone-200/55 space-y-4 shadow-xs hover:shadow-xl transition-all duration-300"
           >
             <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-800 flex items-center justify-center font-bold text-lg font-mono">
               0{i + 1}
@@ -1413,12 +1856,15 @@ function StoryView({ onNavigate }: StoryViewProps) {
             <p className="text-stone-500 text-xs sm:text-sm leading-relaxed font-light">
               {phil.desc}
             </p>
-          </div>
+          </motion.div>
         ))}
       </section>
 
       {/* THE CHEF IN DETAIL */}
-      <section className="bg-white border-y border-stone-200/40 py-16">
+      <motion.section
+        variants={itemVariants}
+        className="bg-white border-y border-stone-200/40 py-16"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="mx-auto lg:mx-0 max-w-md w-full relative">
             <div className="absolute -inset-2 bg-gradient-to-tr from-[#C68B59] to-emerald-800 rounded-[50px] opacity-10 blur-xl animate-pulse" />
@@ -1451,10 +1897,13 @@ function StoryView({ onNavigate }: StoryViewProps) {
             </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* BOT CTA GENTLE WRAP */}
-      <section className="max-w-3xl mx-auto px-4 text-center space-y-6">
+      <motion.section
+        variants={itemVariants}
+        className="max-w-3xl mx-auto px-4 text-center space-y-6"
+      >
         <h3 className="text-2xl font-bold text-emerald-950 font-serif-elegant">
           오늘 아침, 햇살 한 모금 어떠세요?
         </h3>
@@ -1477,8 +1926,8 @@ function StoryView({ onNavigate }: StoryViewProps) {
             예약 일정 잡기
           </button>
         </div>
-      </section>
-    </div>
+      </motion.section>
+    </motion.div>
   );
 }
 
@@ -1513,6 +1962,7 @@ function ReservationView({
   onSuccess
 }: ReservationViewProps) {
   const [errorText, setErrorText] = useState("");
+  const [isSending, setIsSending] = useState(false);
 
   const daysInMonth = 30;
   const startDayOffset = 1; // June 1st, 2026 is Monday
@@ -1549,7 +1999,7 @@ function ReservationView({
     setErrorText("");
   };
 
-  const handleReservationSubmit = (e: React.FormEvent) => {
+  const handleReservationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!resDate) {
@@ -1566,8 +2016,40 @@ function ReservationView({
       date: resDate,
       guests: resGuests,
       time: resTime,
-      notes: resNotes || "없음"
+      notes: resNotes || "없음",
+      emailSent: false,
+      emailError: ""
     };
+
+    setIsSending(true);
+    let finalReservation = { ...newReservation };
+
+    try {
+      const response = await fetch("/api/reserve", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newReservation),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          finalReservation.emailSent = result.emailSent;
+          finalReservation.emailError = result.error;
+        } else {
+          finalReservation.emailError = result.error || "Email failed";
+        }
+      } else {
+        finalReservation.emailError = `Server responded status ${response.status}`;
+      }
+    } catch (err: any) {
+      console.error("Failed to run full-stack email notification:", err);
+      finalReservation.emailError = err.message || String(err);
+    } finally {
+      setIsSending(false);
+    }
 
     const saved = localStorage.getItem("shining_reservations");
     let currentSaved: any[] = [];
@@ -1578,10 +2060,10 @@ function ReservationView({
         console.error(err);
       }
     }
-    const updated = [...currentSaved, newReservation];
+    const updated = [...currentSaved, finalReservation];
     localStorage.setItem("shining_reservations", JSON.stringify(updated));
 
-    onSuccess(newReservation);
+    onSuccess(finalReservation);
   };
 
   const morningSlots = ["11:00", "11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "14:30"];
@@ -1786,9 +2268,14 @@ function ReservationView({
             <button
               type="submit"
               id="reserve-submit-btn"
-              className="w-full py-4 rounded-full text-xs font-bold uppercase tracking-widest bg-emerald-800 hover:bg-[#5E7260] text-white shadow-md transition-all cursor-pointer block text-center"
+              disabled={isSending}
+              className={`w-full py-4 rounded-full text-xs font-bold uppercase tracking-widest text-[#FAF9F5] shadow-md transition-all block text-center ${
+                isSending
+                  ? "bg-stone-500 cursor-not-allowed opacity-80"
+                  : "bg-emerald-800 hover:bg-[#5E7260] cursor-pointer"
+              }`}
             >
-              현재 기재 옵션 정보로 예약 확정하기
+              {isSending ? "보안 예약 확인 및 안내 카드 전송중..." : "현재 기재 옵션 정보로 예약 확정하기"}
             </button>
           </form>
         </div>
@@ -1809,6 +2296,8 @@ interface SuccessModalProps {
     guests: number;
     time: string;
     notes: string;
+    emailSent?: boolean;
+    emailError?: string;
   } | null;
 }
 
@@ -1855,11 +2344,41 @@ function SuccessModal({ isOpen, onClose, details }: SuccessModalProps) {
             <span className="text-stone-400">동반 식사 인원</span>
             <span className="font-semibold text-stone-800 font-mono">{details.guests}명</span>
           </div>
-          <div className="text-xs space-y-1">
+          <div className="text-xs space-y-1 pb-1">
             <span className="text-stone-400 block pb-1 border-t border-stone-100 pt-2 font-medium">기재 메모 희망사항:</span>
             <p className="font-light text-stone-500 bg-stone-50 p-2.5 rounded-lg border border-stone-200/30 line-clamp-2">
               {details.notes}
             </p>
+          </div>
+
+          {/* REALTIME EMAIL DELIVERY BLOCK */}
+          <div className="border-t border-stone-100 pt-3">
+            <div className={`p-3 rounded-xl border flex items-start gap-2.5 ${
+              details.emailSent
+                ? "bg-emerald-50/50 border-emerald-100/80 text-emerald-950"
+                : "bg-amber-50/40 border-amber-100/80 text-amber-950"
+            }`}>
+              {details.emailSent ? (
+                <Mail className="w-4.5 h-4.5 text-emerald-700 shrink-0 mt-0.5 animate-pulse" />
+              ) : (
+                <AlertCircle className="w-4.5 h-4.5 text-amber-600 shrink-0 mt-0.5" />
+              )}
+              <div className="space-y-0.5">
+                <div className="text-[11.5px] font-bold text-stone-900 flex items-center gap-1.5 flex-wrap">
+                  <span>알림 수신: ejmusics@naver.com</span>
+                  {details.emailSent ? (
+                    <span className="text-[9px] bg-emerald-600 text-[#FAF9F5] px-1.5 py-0.2 rounded-xs font-semibold">VIP 전송됨</span>
+                  ) : (
+                    <span className="text-[9px] bg-amber-500 text-white px-1.5 py-0.2 rounded-xs font-semibold">SMTP 대기</span>
+                  )}
+                </div>
+                <p className="text-[10px] text-stone-500 leading-relaxed font-light">
+                  {details.emailSent
+                    ? "식품 알러지 보증 명세와 수제 브런치 정찬 전용 VIP 모바일 안내 카드가 고객님의 메일함으로 즉시 발송되었습니다."
+                    : "예약 접수는 완료되었습니다! 서버 settings 환경변수에 SMTP 계정(SMTP_USER & SMTP_PASS)이 입력되면 ejmusics@naver.com으로 럭셔리 카드 메일이 발송됩니다."}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
