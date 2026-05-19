@@ -18,17 +18,28 @@ app.post("/api/reserve", async (req, res) => {
 
     console.log(`[RESERVATION RECEIVED] ${id} - Date: ${date}, Guests: ${guests}, Time: ${time}`);
 
-    let smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
+    const smtpUser = "ejkim1770@gmail.com";
+    const smtpPass = "nlckwxbcyywgndru";
+
+    let smtpHost = "smtp.gmail.com";
+    let smtpPort = 587;
+
+    // Auto-detect correct SMTP host based on sender email to prevent service mismatch
+    if (smtpUser && smtpUser.includes("@")) {
+      const emailDomain = smtpUser.split("@")[1].toLowerCase().trim();
+      if (emailDomain === "gmail.com") {
+        smtpHost = "smtp.gmail.com";
+      } else if (emailDomain === "naver.com") {
+        smtpHost = "smtp.naver.com";
+      }
+    }
+
     // Dynamic auto-correction for common prefix typos (e.g., "mtp.naver.com" -> "smtp.naver.com")
     if (smtpHost.trim().toLowerCase().startsWith("mtp.")) {
       smtpHost = "smtp." + smtpHost.trim().substring(4);
     }
-    
-    const smtpPort = parseInt(process.env.SMTP_PORT || "587", 10);
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
 
-    const targetEmail = "ejmusics@naver.com";
+    const targetEmail = "ejkim1770@gmail.com";
 
     let emailSent = false;
     let providerInfo = "Not configured";

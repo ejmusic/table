@@ -2365,7 +2365,7 @@ function SuccessModal({ isOpen, onClose, details }: SuccessModalProps) {
               )}
               <div className="space-y-0.5">
                 <div className="text-[11.5px] font-bold text-stone-900 flex items-center gap-1.5 flex-wrap">
-                  <span>알림 수신: ejmusics@naver.com</span>
+                  <span>알림 수신: ejkim1770@gmail.com</span>
                   {details.emailSent ? (
                     <span className="text-[9px] bg-emerald-600 text-[#FAF9F5] px-1.5 py-0.2 rounded-xs font-semibold">VIP 전송됨</span>
                   ) : (
@@ -2375,7 +2375,9 @@ function SuccessModal({ isOpen, onClose, details }: SuccessModalProps) {
                 <p className="text-[10px] text-stone-500 leading-relaxed font-light">
                   {details.emailSent
                     ? "식품 알러지 보증 명세와 수제 브런치 정찬 전용 VIP 모바일 안내 카드가 고객님의 메일함으로 즉시 발송되었습니다."
-                    : "예약 접수는 완료되었습니다! 서버 settings 환경변수에 SMTP 계정(SMTP_USER & SMTP_PASS)이 입력되면 ejmusics@naver.com으로 럭셔리 카드 메일이 발송됩니다."}
+                    : details.emailError 
+                      ? `예약 접수는 되었으나 메일 전송 오류가 발생했습니다: ${details.emailError}`
+                      : "예약 접수는 완료되었습니다! 서버 settings 환경변수에 SMTP 계정(SMTP_USER & SMTP_PASS)이 입력되면 ejkim1770@gmail.com으로 럭셔리 카드 메일이 발송됩니다."}
                 </p>
               </div>
             </div>
