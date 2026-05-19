@@ -18,7 +18,12 @@ app.post("/api/reserve", async (req, res) => {
 
     console.log(`[RESERVATION RECEIVED] ${id} - Date: ${date}, Guests: ${guests}, Time: ${time}`);
 
-    const smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
+    let smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
+    // Dynamic auto-correction for common prefix typos (e.g., "mtp.naver.com" -> "smtp.naver.com")
+    if (smtpHost.trim().toLowerCase().startsWith("mtp.")) {
+      smtpHost = "smtp." + smtpHost.trim().substring(4);
+    }
+    
     const smtpPort = parseInt(process.env.SMTP_PORT || "587", 10);
     const smtpUser = process.env.SMTP_USER;
     const smtpPass = process.env.SMTP_PASS;
