@@ -2304,6 +2304,70 @@ interface SuccessModalProps {
 function SuccessModal({ isOpen, onClose, details }: SuccessModalProps) {
   if (!isOpen || !details) return null;
 
+  const [kakaoShared, setKakaoShared] = useState(false);
+
+  const shareText = `[샤이닝 테이블 - 예약 완료 안내]
+안녕하세요, 프리미엄 브런치 & 스테이크 부티크 '샤이닝 테이블'입니다. 
+고객님의 예약이 정상 확정되었으며, 일행 분들께 예약 정보를 공유해 드립니다.
+
+■ 예약 상세 현황
+• 예약보증 일련코드: ${details.id}
+• 예약 확정일자: ${details.date}
+• 예약 골든타임: ${details.time}
+• 동반 보증인원: 성인 ${details.guests}명 (지정 라운지석)
+• 특별 요청메모: ${details.notes || "없음"}
+
+■ 매장 오시는 길
+• 도로명 주소: 서울특별시 강남구 신사동 도산대로 
+• 주차 혜택: 무료 발렛 서비스 제공 (매장 정면 부스)
+• 영업 시간: 11:00 ~ 21:00 (Break Time: 15:00 ~ 17:00 / 월요일 휴무)`;
+
+  // Automatically copy reservation info to clipboard as soon as the modal is displayed
+  useEffect(() => {
+    if (isOpen && details) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shareText)
+          .then(() => {
+            setKakaoShared(true);
+            setTimeout(() => setKakaoShared(false), 8000); // Keep message longer for auto-copy visibility
+          })
+          .catch((err) => {
+            console.log("Auto copy error on mount:", err);
+          });
+      }
+    }
+  }, [isOpen, details]);
+
+  const handleKakaoShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: '샤이닝 테이블 예약 확정',
+        text: shareText,
+        url: window.location.href
+      }).then(() => {
+        setKakaoShared(true);
+        setTimeout(() => setKakaoShared(false), 3000);
+      }).catch((err) => {
+        console.log("Web Share API error, fallback to clipboard:", err);
+        fallbackCopyToClipboard();
+      });
+    } else {
+      fallbackCopyToClipboard();
+    }
+  };
+
+  const fallbackCopyToClipboard = () => {
+    navigator.clipboard.writeText(shareText).then(() => {
+      setKakaoShared(true);
+      setTimeout(() => setKakaoShared(false), 3000);
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        window.location.href = "kakaotalk://";
+      }
+    }).catch(err => {
+      console.error("Clipboard copy failed: ", err);
+    });
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-xs transition-opacity" onClick={onClose} />
@@ -2363,7 +2427,7 @@ function SuccessModal({ isOpen, onClose, details }: SuccessModalProps) {
               ) : (
                 <AlertCircle className="w-4.5 h-4.5 text-amber-600 shrink-0 mt-0.5" />
               )}
-              <div className="space-y-0.5">
+              <div className="space-y-0.5 text-left">
                 <div className="text-[11.5px] font-bold text-stone-900 flex items-center gap-1.5 flex-wrap">
                   <span>알림 수신: ejkim1770@gmail.com</span>
                   {details.emailSent ? (
@@ -2380,6 +2444,38 @@ function SuccessModal({ isOpen, onClose, details }: SuccessModalProps) {
                       : "예약 접수는 완료되었습니다! 서버 settings 환경변수에 SMTP 계정(SMTP_USER & SMTP_PASS)이 입력되면 ejkim1770@gmail.com으로 럭셔리 카드 메일이 발송됩니다."}
                 </p>
               </div>
+            </div>
+          </div>
+
+          {/* KAKAO TALK SHARING BLOCK */}
+          <div className="border-t border-stone-100 pt-3">
+            <div className="bg-[#FAF8EB] border border-[#F0E6B2]/50 p-3 rounded-xl flex flex-col gap-2.5">
+              <div className="flex items-start gap-2.5">
+                <div className="w-5 h-5 rounded-full bg-[#FEE500] flex items-center justify-center shrink-0 mt-0.5 animate-pulse">
+                  <span className="text-[9px] font-black text-[#191919] select-none">talk</span>
+                </div>
+                <div className="space-y-0.5 text-left">
+                  <div className="text-[11.5px] font-bold text-stone-900 flex items-center gap-1.5 flex-wrap">
+                    <span>카카오톡 즉시 연동 완료</span>
+                    <span className="text-[9px] bg-[#FEE500] text-[#191919] px-1.5 py-0.2 rounded-xs font-bold">AUTO COPY</span>
+                  </div>
+                  <p className="text-[10px] text-stone-600 leading-relaxed font-light">
+                    ⚡ <strong>예약 완료와 동시에 카카오톡 전송용 예약 명세 카드가 클립보드에 자동 복사되었습니다!</strong> 카카오톡 대화창에서 바로 <strong>붙여넣기(Ctrl+V)</strong>하여 동행인에게 공유해보세요.
+                  </p>
+                </div>
+              </div>
+              
+              <button
+                onClick={handleKakaoShare}
+                className={`w-full py-2 text-[11px] font-extrabold rounded-lg flex items-center justify-center gap-1.5 transition-all outline-none cursor-pointer ${
+                  kakaoShared 
+                    ? "bg-emerald-700 text-white shadow-inner" 
+                    : "bg-[#FEE500] hover:bg-[#FEE500]/90 text-[#191919]"
+                }`}
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                {kakaoShared ? "✓ 예약 양식이 클립보드에 자동 복사되었습니다!" : "카카오톡 예약 정보 다시 복사하기"}
+              </button>
             </div>
           </div>
         </div>
