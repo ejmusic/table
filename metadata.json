@@ -1,0 +1,8 @@
+{
+  "name": "Remix: 샤이닝 테이블 예약 서비스",
+  "description": "햇살 가득 브런치 매장 및 샤이닝 테이블의 정교한 브랜드 스토리, 전체 메뉴 소개, 메뉴 품목별 영양/원재료 상세 보기, 스마트 예약 캘린더 및 예약 관리 시스템을 제공하는 럭셔리 푸드 라이프스타일 큐레이션 웹 애플리케이션입니다.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
